@@ -1,0 +1,1 @@
+shinyApp(ui = ui.stockScreenR, server = server.stockScreenR)
