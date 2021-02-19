@@ -1,5 +1,5 @@
 # This script will scrape all available price, income statement and balance sheet data for the JSE top 100 from Yahoo Finance.
-# Be cautious before executing - APPROX 4 HOURS TO RUN
+# Be cautious before executing - APPROX 2 HOURS TO RUN
 
 # TODO: caching function to only retrieve data not present in jse_top100.rds
 

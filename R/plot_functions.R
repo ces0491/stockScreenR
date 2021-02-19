@@ -174,3 +174,44 @@ plot_box <- function(metric_box_data, ticker, metric) {
   
   fig
 }
+
+prepare_ts_data <- function(price_df){
+  
+  n_tkr <- dplyr::n_distinct(price_df$ticker)
+  if(n_tkr > 1) {
+    
+    start_dts <- price_df %>% 
+      dplyr::group_by(ticker) %>% 
+      dplyr::summarise(min(date)) %>% 
+      dplyr::ungroup()
+    
+    min_dt <- max(start_dts)
+    
+    end_dts <- price_df %>% 
+      dplyr::group_by(ticker) %>% 
+      dplyr::summarise(max(date)) %>% 
+      dplyr::ungroup()
+    
+    max_dt <- min(end_dts)
+    
+    clean_dts_df <- price_df %>% 
+      dplyr::group_by(ticker) %>% 
+      dplyr::arrange(date) %>% 
+      dplyr::filter(date >= min_dt,
+                    date<= max_dt) %>% 
+      dateR::to_period(., input$freqSelect) %>% 
+      dplyr::ungroup()
+    
+    result <- clean_dts_df %>% 
+      dplyr::group_by(ticker) %>% 
+      dplyr::mutate(start_val = ifelse(date == min(date), value, NA)) %>% 
+      tidyr::fill(start_val) %>% 
+      dplyr::mutate(value = value / start_val - 1) %>% 
+      dplyr::ungroup()  
+    
+  } else {
+    result <- price_df
+  }
+  
+  return(result)
+}
