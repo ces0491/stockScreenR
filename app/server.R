@@ -12,6 +12,10 @@ server.stockScreenR <- function(input, output, session) {
     stringr::str_split(stringr::str_replace_all(input$tickerSelect, "\\s", ""), ",")[[1]]
   })
   
+  top_ticker <- reactive({
+    stringr::str_split(tickers(), "-")[[1]][2] # get the first ticker from input tickerSelect and remove prefix
+  })
+  
   # retrieve live data
   data <- eventReactive(input$submitBtn, {
     
@@ -31,14 +35,10 @@ server.stockScreenR <- function(input, output, session) {
   # create summary table - displays data for first ticker regardless of how many tickers are entered
   summ_data <- reactive({
   
-    top_ticker <- stringr::str_split(tickers(), "-")[[1]][2] # get the first ticker from input tickerSelect and remove prefix
+    top_ticker <- top_ticker()
     
     data() %...>%
-      dplyr::filter(ticker == top_ticker,
-                    type == "meta") %...>%
-      tidyr::unnest(clean_data) %...>%
-      dplyr::select(variable, value) %...>%
-      dplyr::arrange(match(variable, c("Name", "Market", "Currency", "Market Cap", "Shares Outstanding", "Beta")), desc(value))
+      build_summary_table(., top_ticker)
   })
   
     # render summary table
@@ -60,44 +60,109 @@ server.stockScreenR <- function(input, output, session) {
         tidyr::unnest(clean_data) %...>%
         dplyr::filter(variable == 'AdjClose' | variable == 'Price') %...>% # Yahoo returns closes, investing returns pricex
         dplyr::select(ticker, date, variable, value) %...>%
-        prepare_ts_data()
+        prepare_ts_data(., input$freqSelect)
     
     })
 
     # render timeseries plot of prices
     output$tickerTS <- plotly::renderPlotly({
-      plotly::plot_ly(ts_plot_data(), x = ~date, y = ~value, mode = 'lines', linetype = ~ticker)
+      
+      ttl <- "Historical Price Timeseries"
+      x <- list(title = "")
+      y <- list(title = "")
+      
+      ts_plot_data() %...>%
+        plotly::plot_ly(., x = ~date, y = ~plot_value, mode = 'lines', linetype = ~ticker,
+                        text = ~ticker,
+                        hovertemplate = paste(
+                          "<b>%{text}</b><br>",
+                          "Date: %{date:%d %b %Y}<br>",
+                          "Price: %{value:.2f}<br>",
+                          "Change: %{change:.1%}",
+                          "<extra></extra>"
+                        )) %...>% 
+        plotly::layout(title = ttl, xaxis = x, yaxis = y) %...>%
+        plotly::rangeslider(start = input$dateRange[1], end = input$dateRange[2])
+      
     })
 
+    # get is data
+    is_data <- reactive({
+      
+      top_ticker <- top_ticker()
+      
+      data() %...>%
+        dplyr::filter(type == "IS") %...>%
+        tidyr::unnest(clean_data) %...>%
+        dplyr::select(ticker, year, variable, value) %...>%
+        dplyr::group_by(ticker) %...>% 
+        dplyr::arrange(year) %...>% 
+        dplyr::ungroup() %...>%
+        tidyr::spread(year, value) %...>%
+        dplyr::rename("Income Statement Items" = "variable")
+    })
+    
+    # render income statement table
+    output$isTbl <- DT::renderDT({
+      is_data() %...>%
+        DT::datatable(., rownames = FALSE)
+      })
+    
+    
+    # get bs data
+    bs_data <- reactive({
+      
+      top_ticker <- top_ticker()
+      
+      data() %...>%
+        dplyr::filter(type == "BS") %...>%
+        tidyr::unnest(clean_data) %...>%
+        dplyr::select(ticker, year, variable, value) %...>%
+        dplyr::group_by(ticker) %...>% 
+        dplyr::arrange(year) %...>% 
+        dplyr::ungroup() %...>%
+        tidyr::spread(year, value) %...>%
+        dplyr::rename("Balance Sheet Items" = "variable")
+    })
+    
+    # render balance sheet
+    output$bsTbl <- DT::renderDT({
+      bs_data() %...>% 
+        DT::datatable(., rownames = FALSE)
+      })
+    
   # Downloadable xlsx of selected data
   output$downloadData <- downloadHandler(
+    
     filename = function() {
-      if(length(input$tickerSelect) > 1) {
+      if(length(tickers()) > 1) {
         ticker <- "multi_ticker"
       } else {
-        ticker <- input$tickerSelect
+        ticker <- top_ticker()
       }
       paste0(ticker,"_data_extract_", format(Sys.Date(), "%Y%m%d"), ".xlsx")
     },
+    
     content = function(file) {
       
-      file_names <- c("price_data", "bs_data", "is_data", "meta_data")
+      export_list <- data() %...>%
+        tidyr::unite("id", c(ticker, type)) %...>%
+        dplyr::select(id, clean_data) %...>%
+        tibble::deframe()
       
-      for (fname in file_names) {
-        reqd_ticker_data <- data() %...>%
-          tidyr::unnest()
-        
-          excelsioR::write_wb(r_data = reqd_ticker_data,
-                              sheet_name = fname,
-                              clear_sheet = TRUE,
-                              wb = NULL,
-                              file_directory = file,
-                              save_wb = TRUE)
-        }
+      export_list %...>%   
+        excelsioR::write_wb(r_data = .,
+                            clear_sheet = TRUE,
+                            wb_dir = file,
+                            save_wb = TRUE)
       }  
   )
   
-
+  DT::renderDT({
+    nm <- input$searchTicker
+    future_promise({fdoR::get_ticker_names(nm)}) %...>% # use promise to wait for the data to be available before rendering as DT
+      DT::datatable(., options = list(dom = 't'))
+  })
   
   # return table of potential tickers by searching investing.com
   observeEvent(input$searchTicker_search, {

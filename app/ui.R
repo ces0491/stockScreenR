@@ -12,8 +12,8 @@ sidebar <- shinydashboard::dashboardSidebar(
   width = 350,
   
   textAreaInput(inputId = "tickerSelect", 
-                label = "Select Ticker", 
-                value = "",
+                label = "Enter Ticker(s)", 
+                value = "INV-NTCJ, INV-LHCJ",
                 placeholder = "YAH-NTC.JO, INV-TSLA"),
   
   column(12, align = "left", offset = 0, 
@@ -41,8 +41,6 @@ sidebar <- shinydashboard::dashboardSidebar(
   column(12, align = "left", offset = 0, div(tags$div(HTML('Summary Info')))),
   tableOutput(outputId = "summaryTbl") %>% withSpinner(),
   
-  hr(),
-  
   column(12, align = "left", offset = 0, 
          downloadButton(outputId = "downloadData", 
                         label = "Download", 
@@ -63,8 +61,8 @@ body <- shinydashboard::dashboardBody(
       hr(),
     
       fluidRow(
-        column(6, plotly::plotlyOutput("isTbl") %>% withSpinner()),
-        column(6, plotly::plotlyOutput("bsTbl") %>% withSpinner())
+        column(6, DT::dataTableOutput("isTbl") %>% withSpinner()),
+        column(6, DT::dataTableOutput("bsTbl") %>% withSpinner())
         )
       )
     ),

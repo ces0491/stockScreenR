@@ -8,3 +8,4 @@ library(shinycssloaders)
 plan(multisession)
 
 source("../R/plot_functions.R")
+source("../R/table_functions.R")
