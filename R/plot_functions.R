@@ -6,15 +6,13 @@ prepare_ts_data <- function(price_df, freq){
     
     start_dts <- price_df %>% 
       dplyr::group_by(ticker) %>% 
-      dplyr::summarise(min(date)) %>% 
-      dplyr::ungroup()
+      dplyr::summarise(min(date), .groups = "drop")
     
     min_dt <- max(start_dts[,2][[1]])
     
     end_dts <- price_df %>% 
       dplyr::group_by(ticker) %>% 
-      dplyr::summarise(max(date)) %>% 
-      dplyr::ungroup()
+      dplyr::summarise(max(date), .groups = "drop")
     
     max_dt <- min(end_dts[,2][[1]])
     

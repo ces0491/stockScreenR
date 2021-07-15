@@ -13,7 +13,7 @@ sidebar <- shinydashboard::dashboardSidebar(
   
   textAreaInput(inputId = "tickerSelect", 
                 label = "Enter Ticker(s)", 
-                value = "INV-NTCJ, INV-LHCJ",
+                value = "YAH-^J203.JO,YAH-RFG.JO",
                 placeholder = "YAH-NTC.JO, INV-TSLA"),
   
   column(12, align = "left", offset = 0, 
@@ -24,7 +24,7 @@ sidebar <- shinydashboard::dashboardSidebar(
   
   dateRangeInput(inputId = "dateRange",
                  label = "Select Date Range",
-                 start = Sys.Date() - 365,
+                 start = Sys.Date() - 365*5,
                  end = Sys.Date()),
   
   selectizeInput(inputId = "freqSelect",

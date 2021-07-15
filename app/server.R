@@ -25,7 +25,7 @@ server.stockScreenR <- function(input, output, session) {
     freq <- input$freqSelect
       
     future_promise({fdoR::get_equity_data(tickers = reqd_tickers, 
-                                          type = c('price', 'BS', 'IS'), 
+                                          type = c('price', 'IS', 'BS'), 
                                           start_date = start_dt, 
                                           end_date = end_dt, 
                                           frequency = freq)
@@ -74,13 +74,11 @@ server.stockScreenR <- function(input, output, session) {
       ts_plot_data() %...>%
         plotly::plot_ly(., x = ~date, y = ~plot_value, mode = 'lines', linetype = ~ticker,
                         text = ~ticker,
-                        hovertemplate = paste(
-                          "<b>%{text}</b><br>",
-                          "Date: %{date:%d %b %Y}<br>",
-                          "Price: %{value:.2f}<br>",
-                          "Change: %{change:.1%}",
-                          "<extra></extra>"
-                        )) %...>% 
+                        hovertemplate = paste0("<b>%{text}</b><br>",
+                          "Date: %{x}<br>",
+                          "Price: %{y}<br>",
+                          "<extra></extra>")
+                        ) %...>% 
         plotly::layout(title = ttl, xaxis = x, yaxis = y) %...>%
         plotly::rangeslider(start = input$dateRange[1], end = input$dateRange[2])
       
@@ -94,11 +92,11 @@ server.stockScreenR <- function(input, output, session) {
       data() %...>%
         dplyr::filter(type == "IS") %...>%
         tidyr::unnest(clean_data) %...>%
-        dplyr::select(ticker, year, variable, value) %...>%
+        dplyr::select(ticker, date, variable, value) %...>%
         dplyr::group_by(ticker) %...>% 
-        dplyr::arrange(year) %...>% 
+        dplyr::arrange(desc(date), .by_group = TRUE) %...>% 
         dplyr::ungroup() %...>%
-        tidyr::spread(year, value) %...>%
+        tidyr::spread(date, value) %...>%
         dplyr::rename("Income Statement Items" = "variable")
     })
     
@@ -117,11 +115,11 @@ server.stockScreenR <- function(input, output, session) {
       data() %...>%
         dplyr::filter(type == "BS") %...>%
         tidyr::unnest(clean_data) %...>%
-        dplyr::select(ticker, year, variable, value) %...>%
+        dplyr::select(ticker, date, variable, value) %...>%
         dplyr::group_by(ticker) %...>% 
-        dplyr::arrange(year) %...>% 
+        dplyr::arrange(desc(date), .by_group = TRUE) %...>% 
         dplyr::ungroup() %...>%
-        tidyr::spread(year, value) %...>%
+        tidyr::spread(date, value) %...>%
         dplyr::rename("Balance Sheet Items" = "variable")
     })
     

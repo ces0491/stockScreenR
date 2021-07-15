@@ -5,6 +5,15 @@ library(promises)
 library(future)
 library(shinycssloaders)
 
+require(companyDataScrapeR)
+require(fdoR)
+require(dateR)
+require(assertR)
+require(excelsioR)
+require(fileR)
+require(wgbDataScrapeR)
+require(webScrapeR)
+
 plan(multisession)
 
 source("../R/plot_functions.R")
